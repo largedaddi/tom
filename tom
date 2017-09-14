@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+while getopts d: option
+do
+ case "${option}"
+ in
+ d) ROOTDIR=${OPTARG};;
+ esac
+done
+
+THUMBSDIR="$ROOTDIR/thumbs"
+if [ ! -d "$THUMBSDIR" ]; then
+    mkdir -p "$THUMBSDIR"
+fi
+
+declare -i THUMBSCREATED_COUNT; THUMBSCREATED_COUNT=0
+declare -i THUMBSFOUND_COUNT; THUMBSFOUND_COUNT=0
+
+while read -r IMAGEFILE_ABS; do
+    echo "SEARCHING: $IMAGEFILE_ABS"
+
+    IMAGEFILE_REL=${IMAGEFILE_ABS#$ROOTDIR}
+    THUMBSFILE="$THUMBSDIR${IMAGEFILE_REL}"
+
+    if [ -f "$THUMBSFILE" ]; then
+        echo "FOUND: $THUMBSFILE"
+        ((THUMBSFOUND_COUNT++))
+    fi
+
+    if [ ! -f "$THUMBSFILE" ]; then
+        echo "NOT FOUND: $THUMBSFILE"
+        echo "CREATING THUMB: $THUMBSFILE"
+
+        mkdir -p "$(dirname "$THUMBSFILE")"
+
+        convert -sample 120x80 "$IMAGEFILE_ABS" "$THUMBSFILE"   
+
+        echo "COMPLETED: $THUMBSFILE."
+        THUMBSCREATED_COUNT+=1
+    fi
+
+    echo ""
+done < <( find "$ROOTDIR" \( -iname '*.gif' -o -iname '*.jpg' -o -iname '*.png' -o -iname '*.jpeg' \) -and -not -path '*thumbs*' )
+
+echo "tom has finished."
+echo ""
+echo "Here's a summary of what happened:"
+echo "$THUMBSCREATED_COUNT thumbs were created."
+echo "$THUMBSFOUND_COUNT existing thumbs were found."
